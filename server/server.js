@@ -5,7 +5,7 @@ const { PythonShell } = require('python-shell');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
@@ -19,27 +19,36 @@ if (process.env.NODE_ENV === 'production') {
 
 // API endpoint to get data from Python backend
 app.get('/api/data', (req, res) => {
+  console.log("called")
   const options = {
+    // Path to Python script and interpreter
     scriptPath: path.join(__dirname, '../backend'),
     pythonPath: 'python', // or specify the path to your Python executable
+    pythonOptions: ['-u'],   // unbuffered stdout/stderr
     args: ['--get-data']
   };
 
-  PythonShell.run('main.py', options, (err, results) => {
-    if (err) {
+  console.log("called 2")
+
+  // Run Python script and handle output via promise
+  PythonShell.run('main.py', options)
+    .then((results) => {
+      console.log("called 2.5");
+      try {
+        // Assuming the Python script returns JSON in the first line
+        const data = JSON.parse(results[0]);
+        console.log("called 3");
+        console.log(data);
+        res.json(data);
+      } catch (error) {
+        console.error('Error parsing Python output:', error);
+        res.status(500).json({ error: 'Failed to parse data from Python backend' });
+      }
+    })
+    .catch((err) => {
       console.error('Error running Python script:', err);
-      return res.status(500).json({ error: 'Failed to get data from Python backend' });
-    }
-    
-    try {
-      // Assuming the Python script returns JSON
-      const data = JSON.parse(results[0]);
-      res.json(data);
-    } catch (error) {
-      console.error('Error parsing Python output:', error);
-      res.status(500).json({ error: 'Failed to parse data from Python backend' });
-    }
-  });
+      res.status(500).json({ error: 'Failed to get data from Python backend' });
+    });
 });
 
 // API endpoint to process data with Python backend

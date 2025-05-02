@@ -44,16 +44,18 @@ def main():
     
     if args.get_data:
         data = get_data()
-        print(json.dumps(data))
+        # Output JSON data for frontend
+        print(json.dumps(data), flush=True)
     
     elif args.process_data:
         # Read input from stdin
         input_data = json.loads(sys.stdin.read())
         result = process_data(input_data)
-        print(json.dumps(result))
+        print(json.dumps(result, flush=True))
     
     else:
         print(json.dumps({"error": "No valid command specified"}))
 
 if __name__ == "__main__":
+    # Run main entry point
     main()
