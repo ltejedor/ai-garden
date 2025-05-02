@@ -42,49 +42,6 @@ const Box: React.FC<{ position: [number, number, number]; color?: string }> = (
 	);
 };
 
-// Astronaut model component
-const Astronaut: React.FC = () => {
-	const { scene } = useGLTF("/rendercrate-astronaut-rig.glb");
-	const astronautRef = useRef<THREE.Group>(null);
-
-	// Apply shadows to all meshes in the model
-	React.useEffect(() => {
-		if (astronautRef.current) {
-			astronautRef.current.traverse((child) => {
-				if ((child as THREE.Mesh).isMesh) {
-					child.castShadow = true;
-					child.receiveShadow = true;
-				}
-			});
-		}
-	}, []); // Run only once on mount
-
-	// Gentle floating animation
-	useFrame(({ clock }) => {
-		if (astronautRef.current) {
-			// Add subtle floating motion
-			astronautRef.current.position.y =
-				Math.sin(clock.getElapsedTime() * 0.5) * 0.1;
-			// Slow rotation
-			astronautRef.current.rotation.y = clock.getElapsedTime() * 0.1;
-		}
-	});
-
-	return (
-		<PresentationControls
-			global
-			snap
-			rotation={[0, 0, 0]}
-			polar={[-Math.PI / 4, Math.PI / 4]}
-			azimuth={[-Math.PI / 4, Math.PI / 4]}
-		>
-			<group ref={astronautRef} position={[0, 0, 0]} scale={0.01}>
-				<primitive object={scene} />
-			</group>
-		</PresentationControls>
-	);
-};
-
 // Ground plane component
 const Ground: React.FC = () => {
 	return (

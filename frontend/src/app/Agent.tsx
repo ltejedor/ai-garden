@@ -11,6 +11,7 @@ export default function Agent(props: {
 	scale?: number;
 	data: {
 		name: string;
+		text: string | null;
 	};
 	audioVoice: Voice;
 	audioText: string | null;
@@ -34,6 +35,18 @@ export default function Agent(props: {
 			>
 				{data.name}
 			</Text>
+			{data.text && (
+				<Text
+					scale={[0.2, 0.2, 0.2]}
+					color="red" // default
+					anchorX="center" // default
+					anchorY="middle" // default
+					position={[0, 2, 0]}
+					maxWidth={10}
+				>
+					{data.text}
+				</Text>
+			)}
 			{modelUrl.endsWith(".glb") && <Gltf src={modelUrl} scale={scale} />}
 			{modelUrl.endsWith(".fbx") && <Fbx scale={scale} path={modelUrl} />}
 			{audioUrl && (

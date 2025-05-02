@@ -36,15 +36,17 @@ declare global {
 	}
 }
 
-export const Listener: FC<{ onTranscript: (transcript: string) => void }> = (
-	props,
-) => {
+export const Listener: FC<{
+	onTranscript: (transcript: string, done: boolean) => void;
+}> = (props) => {
 	const { onTranscript } = props;
 	const [isListening, setIsListening] = useState(false);
 	const [transcript, setTranscript] = useState("");
 	const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+	const transcriptRef = useRef<string>("");
 
 	const setup = () => {
+		console.log("SETTING up");
 		const SpeechRecognition =
 			window.SpeechRecognition || window.webkitSpeechRecognition;
 		if (!SpeechRecognition) {
@@ -52,20 +54,14 @@ export const Listener: FC<{ onTranscript: (transcript: string) => void }> = (
 			return;
 		}
 		recognitionRef.current = new SpeechRecognition();
-		console.log("Resetting", recognitionRef.current);
 		recognitionRef.current.continuous = true;
 		recognitionRef.current.interimResults = true;
 		recognitionRef.current.lang = "en-US";
 
 		recognitionRef.current.onresult = (event) => {
-			console.log("ON RESULT", event);
 			const result = event.results[0][0].transcript;
-			setTranscript(result);
-
-			recognitionRef.current.onend = () => {
-				console.log("ON END");
-				onTranscript(transcript);
-			};
+			transcriptRef.current = result;
+			onTranscript(result, false);
 		};
 		recognitionRef.current.onerror = (event) => {
 			console.error("Speech recognition error:", event);
@@ -79,17 +75,18 @@ export const Listener: FC<{ onTranscript: (transcript: string) => void }> = (
 				e.preventDefault(); // Prevent scrolling
 				setIsListening(true);
 				setTranscript("");
-				console.log("STARTING LISTENING", recognitionRef.current);
 				recognitionRef.current?.start();
 			}
 		};
 
 		const handleKeyUp = (e: KeyboardEvent) => {
-			if (e.code === "Space" && isListening) {
+			if (e.code === "Space") {
 				e.preventDefault();
 
 				recognitionRef.current?.stop();
 				setIsListening(false);
+
+				onTranscript(transcriptRef.current, true);
 			}
 		};
 
@@ -111,17 +108,6 @@ export const Listener: FC<{ onTranscript: (transcript: string) => void }> = (
 	}, [isListening, transcript]);
 
 	return null;
-
-	return (
-		<div className="listener">
-			<div className="status">
-				{isListening ? "Listening..." : "Press and hold space to speak"}
-			</div>
-			{transcript && (
-				<div className="transcript">Last transcript: {transcript}</div>
-			)}
-		</div>
-	);
 };
 
 export default Listener;

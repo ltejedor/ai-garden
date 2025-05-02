@@ -5,15 +5,11 @@ import { Garden } from "./app/Garden";
 import { Physics, RigidBody } from "@react-three/rapier";
 import { Color, AudioListener, AudioLoader, Audio } from "three";
 
-import {
-	Gltf,
-	Environment,
-	Fisheye,
-	KeyboardControls,
-} from "@react-three/drei";
+import { Environment, Fisheye, KeyboardControls } from "@react-three/drei";
 import Controller from "ecctrl";
 import axios from "axios";
 import Listener from "./app/Listener";
+import Agent from "./app/Agent";
 
 interface BackendData {
 	// Define your backend data structure here
@@ -30,47 +26,32 @@ const keyboardMap = [
 	{ name: "run", keys: ["Shift"] },
 ];
 
-function AudioComponent() {
-	const { camera } = useThree();
-	useEffect(() => {
-		const listener = new AudioListener();
-		camera.add(listener);
-	}, []);
-
-	return null;
-}
+type Message = {
+	agent: string;
+	text: string;
+};
 
 export default function App() {
-	const [messages, setMessages] = useState([
-		{
-			sender: "bot",
-			text: "Hello! This is a test chat. Type a message and press Send.",
-		},
-	]);
-	const [input, setInput] = useState("Go hunt some aliens");
-	const handleSubmit = async (text: string) => {
-		if (!text) return;
-		// Add user message
-		console.log("calling with", text);
-		setMessages((prev) => [...prev, { sender: "user", text }]);
-		setInput("");
-		try {
-			const { data } = await axios.post("http://localhost:5001/api/chat", {
-				message: text,
-			});
-			console.log(data);
-			setMessages((prev) => [...prev, { sender: "bot", text: data.reply }]); 
-		} catch (error) {
-			console.error("Error sending message:", error);
-			setMessages((prev) => [
-				...prev,
-				{ sender: "bot", text: "Error: failed to send message" },
-			]);
-		}
-	};
+	const [reply, setReply] = useState<string | null>(null);
 
-	const onTranscript = (transcript: string) => {
-		handleSubmit(transcript);
+	const handleSubmit = async (text: string) => {
+		axios
+			.post("http://localhost:5001/api/chat", {
+				message: text,
+			})
+			.then((res) => {
+				console.log("RES", res.data);
+				setReply(res.data.reply);
+			});
+	};
+	const [transcript, setTranscript] = useState("");
+
+	const onTranscript = (transcript: string, done: boolean) => {
+		if (done) {
+			handleSubmit(transcript);
+		} else {
+			setTranscript(transcript);
+		}
 	};
 
 	return (
@@ -96,23 +77,18 @@ export default function App() {
 				<Physics timeStep="vary">
 					<KeyboardControls map={keyboardMap}>
 						<Controller maxVelLimit={5}>
-							<Gltf
-								castShadow
-								receiveShadow
+							<Agent
+								position={[0, 0, 0]}
+								modelUrl="ghost_w_tophat-transformed.glb"
+								id="user"
+								data={{ name: transcript, text: transcript }}
+								audioVoice="astra"
+								audioText={null}
 								scale={0.315}
-								position={[0, -0.55, 0]}
-								src={"ghost_w_tophat-transformed.glb"}
 							/>
 						</Controller>
 					</KeyboardControls>
 					<RigidBody type="fixed" colliders="trimesh">
-						{/* <Gltf
-							castShadow
-							receiveShadow
-							rotation={[-Math.PI / 2, 0, 0]}
-							scale={0.11}
-							src="/fantasy_game_inn2-transformed.glb"
-						/> */}
 						<mesh
 							rotation={[-Math.PI / 2, 0, 0]}
 							position={[0, -1, 0]}
@@ -126,7 +102,15 @@ export default function App() {
 							/>
 						</mesh>
 
-						<Garden />
+						<Agent
+							position={[2, 0, 1]}
+							modelUrl="Humanmc.glb"
+							id="user"
+							data={{ name: "John", text: reply }}
+							audioVoice="astra"
+							audioText={reply}
+							scale={0.2}
+						/>
 					</RigidBody>
 				</Physics>
 			</Fisheye>
