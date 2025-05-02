@@ -1,0 +1,3 @@
+[submodule "backend/guMCP"]
+	path = backend/guMCP
+	url = https://github.com/gumloop/guMCP.git
