@@ -124,13 +124,13 @@ export const Garden: React.FC = () => {
 			<Ground />
 
 			<Agent
-				position={[0, 0, 0]}
-				modelUrl="chibi.fbx"
+				position={[0, 0, 1]}
+				modelUrl="cat.glb"
 				id="1"
 				data={{ name: "John" }}
 				audioVoice="astra"
-				audioText={"hello how are you?"}
-				scale={0.001}
+				audioText={null}
+				scale={2}
 			/>
 
 			{/* Display data from backend if available */}
