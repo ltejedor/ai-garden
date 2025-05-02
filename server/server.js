@@ -124,13 +124,9 @@ app.post('/api/chat', (req, res) => {
     let replied = false;
     py.on('message', msg => {
       if (replied) return;
-      try {
-        const data = JSON.parse(msg);
-        res.json(data);
-        replied = true;
-      } catch (err) {
-        // ignore non-JSON lines
-      }
+      // msg is already a JS object parsed from JSON
+      res.json(msg);
+      replied = true;
     });
   }
 
