@@ -12,6 +12,7 @@ import {
 	KeyboardControls,
 } from "@react-three/drei";
 import Controller from "ecctrl";
+import axios from "axios";
 
 interface BackendData {
 	// Define your backend data structure here
@@ -39,6 +40,39 @@ function AudioComponent() {
 }
 
 export default function App() {
+	const [messages, setMessages] = useState([
+		{
+			sender: "bot",
+			text: "Hello! This is a test chat. Type a message and press Send.",
+		},
+	]);
+	const [input, setInput] = useState("Go hunt some aliens");
+	const handleSubmit = async () => {
+		const text = input.trim();
+		console.log("handleSubmit", text);
+		if (!text) return;
+		// Add user message
+		setMessages((prev) => [...prev, { sender: "user", text }]);
+		setInput("");
+		try {
+			const { data } = await axios.post("http://localhost:5001/api/chat", {
+				message: text,
+			});
+			console.log(data);
+			setMessages((prev) => [...prev, { sender: "bot", text: data.reply }]); // <‑‑ new shape
+		} catch (error) {
+			console.error("Error sending message:", error);
+			setMessages((prev) => [
+				...prev,
+				{ sender: "bot", text: "Error: failed to send message" },
+			]);
+		}
+	};
+
+	useEffect(() => {
+		handleSubmit();
+	}, []);
+
 	return (
 		<Canvas shadows>
 			<Fisheye zoom={0.4}>

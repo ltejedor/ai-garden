@@ -97,23 +97,6 @@ const Ground: React.FC = () => {
 
 // Scene component with data fetching
 export const Garden: React.FC = () => {
-	const [data, setData] = useState<BackendData | null>(null);
-
-	// Fetch data from backend
-	React.useEffect(() => {
-		const fetchData = async (): Promise<void> => {
-			try {
-				const response = await axios.get<BackendData>("/api/data");
-				console.log("Data from backend:", response.data);
-				setData(response.data);
-			} catch (error) {
-				console.error("Error fetching data:", error);
-			}
-		};
-
-		fetchData();
-	}, []);
-
 	return (
 		<>
 			{/* Lights */}
@@ -132,13 +115,6 @@ export const Garden: React.FC = () => {
 				audioText={null}
 				scale={2}
 			/>
-
-			{/* Display data from backend if available */}
-			{data && (
-				<group position={[0, 2, 0]}>
-					{/* You can visualize your backend data here */}
-				</group>
-			)}
 		</>
 	);
 };
