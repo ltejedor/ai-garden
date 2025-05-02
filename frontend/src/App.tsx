@@ -59,7 +59,7 @@ export default function App() {
 				message: text,
 			});
 			console.log(data);
-			setMessages((prev) => [...prev, { sender: "bot", text: data.reply }]); // <‑‑ new shape
+			setMessages((prev) => [...prev, { sender: "bot", text: data.reply }]); 
 		} catch (error) {
 			console.error("Error sending message:", error);
 			setMessages((prev) => [

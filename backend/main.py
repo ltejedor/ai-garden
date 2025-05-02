@@ -2,18 +2,20 @@
 import argparse, json, sys, io, contextlib
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Ensure smolagents-ref library is in the Python path for imports
 script_dir = Path(__file__).resolve().parent
 root_dir = script_dir.parent
 sys.path.insert(0, str(root_dir / 'smolagents-ref' / 'src'))
-from smolagents import CodeAgent, HfApiModel
+from smolagents import CodeAgent, LiteLLMModel
 from smolagents.gradio_ui import pull_messages_from_step
 from smolagents.memory import FinalAnswerStep
 
+load_dotenv()
 
 def run_agent(prompt: str, stream: bool = False):
-    agent = CodeAgent(tools=[], model=HfApiModel(), add_base_tools=True)
+    agent = CodeAgent(tools=[], model=LiteLLMModel(model_id="anthropic/claude-3-7-sonnet-latest"), add_base_tools=True)
 
     if stream:
         # 1️⃣ prime the run (hidden) without printing logs
