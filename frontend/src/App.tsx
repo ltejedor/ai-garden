@@ -13,6 +13,7 @@ import {
 } from "@react-three/drei";
 import Controller from "ecctrl";
 import axios from "axios";
+import Listener from "./app/Listener";
 
 interface BackendData {
 	// Define your backend data structure here
@@ -47,11 +48,10 @@ export default function App() {
 		},
 	]);
 	const [input, setInput] = useState("Go hunt some aliens");
-	const handleSubmit = async () => {
-		const text = input.trim();
-		console.log("handleSubmit", text);
+	const handleSubmit = async (text: string) => {
 		if (!text) return;
 		// Add user message
+		console.log("calling with", text);
 		setMessages((prev) => [...prev, { sender: "user", text }]);
 		setInput("");
 		try {
@@ -69,12 +69,13 @@ export default function App() {
 		}
 	};
 
-	useEffect(() => {
-		handleSubmit();
-	}, []);
+	const onTranscript = (transcript: string) => {
+		handleSubmit(transcript);
+	};
 
 	return (
 		<Canvas shadows>
+			<Listener onTranscript={onTranscript} />
 			<Fisheye zoom={0.4}>
 				<Environment
 					files="https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/evening_road_01_2k.hdr"
