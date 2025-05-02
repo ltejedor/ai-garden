@@ -9,6 +9,7 @@ script_dir = Path(__file__).resolve().parent
 root_dir = script_dir.parent
 sys.path.insert(0, str(root_dir / 'smolagents-ref' / 'src'))
 from smolagents import CodeAgent, LiteLLMModel
+from smolagents.mcp_client import MCPClient
 from smolagents.gradio_ui import pull_messages_from_step
 from smolagents.memory import FinalAnswerStep
 import re  # for sanitizing MCP tool names
@@ -16,40 +17,45 @@ import re  # for sanitizing MCP tool names
 load_dotenv()
 
 def run_agent(prompt: str, stream: bool = False):
-    # Initialize the model for Claude
     model = LiteLLMModel(model_id="anthropic/claude-3-7-sonnet-latest")
+    all_tools = []
 
-    # Check for Gumloop MCP server integration via API key
-    gumloop_api_key = os.getenv("GUMLOOP_API_KEY")
-    if gumloop_api_key:
-        from smolagents.mcp_client import MCPClient
+    # try:
+    #     apify_url = f"https://actors-mcp-server.apify.actor/message?token={os.getenv('APIFY_TOKEN')}&session_id=aa86461a-3492-45c5-a073-708531cacace"
+    #     with MCPClient({"url": apify_url}) as apify_tools:
+    #         print(apify_tools)
+    #         all_tools.extend(apify_tools)
+    # except Exception:
+    #     pass  # Fail silently if Apify isn't available
 
-        server_url = os.getenv("GUMLOOP_AUTH_URL")
+    try:
+        gumloop_url = os.getenv("GUMLOOP_AUTH_URL")
+        with MCPClient({"url": gumloop_url}) as gumloop_tools:
+            all_tools.extend(gumloop_tools)
+    except Exception:
+        pass  # Fail silently if Gumloop isn't available
 
-        # Connect to MCP server and retrieve tools
-        with MCPClient({"url": server_url}) as tools:
-            #print(tools)
-            # sanitize tool names to valid Python identifiers
-            for tool in tools:
-                print(tool.name)
-                tool.name = re.sub(r'\W|^(?=\d)', '_', tool.name)
-                print(tool.name)
-            
-            agent = CodeAgent(
-                tools=tools,
-                model=model,
-                additional_authorized_imports=["time", "numpy", "pandas", "json"],
-                add_base_tools=False
-            )
-            _run_and_print(agent, prompt, stream)
-    else:
-        # No MCP integration; use built-in base tools
-        agent = CodeAgent(
-            tools=[],
-            model=model,
-            add_base_tools=True
-        )
-        _run_and_print(agent, prompt, stream)
+    for tool in all_tools:
+        tool.name = re.sub(r'\W|^(?=\d)', '_', tool.name)
+
+
+    research_agent = CodeAgent(
+        model=model,
+        tools=all_tools,
+        name="research_agent",
+        add_base_tools=True,
+        description="Researches online and saves output to google sheets",
+    )
+
+    manager_agent = CodeAgent(
+        tools=[],
+        model=model,
+        additional_authorized_imports=["time", "numpy", "pandas", "json"],
+        managed_agents=[research_agent],
+        add_base_tools=not bool(all_tools)
+    )
+
+    _run_and_print(manager_agent, prompt, stream)
 
 def _run_and_print(agent: CodeAgent, prompt: str, stream: bool):
     """Helper to run the agent and print JSON responses."""
