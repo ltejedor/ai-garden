@@ -1,61 +1,39 @@
 #!/usr/bin/env python3
-import json
-import sys
-import argparse
+import argparse, json, sys, io, contextlib
+from smolagents import CodeAgent, HfApiModel
+from smolagents.gradio_ui import pull_messages_from_step
+from smolagents.memory import FinalAnswerStep
 
-def get_data():
-    """
-    Return sample data for the frontend visualization.
-    """
-    # This is where you would implement your data retrieval logic
-    sample_data = {
-        "points": [
-            {"x": 0, "y": 0, "z": 0},
-            {"x": 1, "y": 0, "z": 0},
-            {"x": 0, "y": 1, "z": 0},
-            {"x": 0, "y": 0, "z": 1}
-        ],
-        "metadata": {
-            "title": "Sample 3D Data",
-            "description": "This is sample data for the Three.js visualization"
-        }
-    }
-    return sample_data
+def quiet_run(agent, prompt):
+    """Run once, discarding the Rich banners + debug prints."""
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        return agent.run(prompt)
 
-def process_data(input_data):
-    """
-    Process data received from the frontend.
-    """
-    # This is where you would implement your data processing logic
-    result = {
-        "status": "success",
-        "processed": True,
-        "input_received": input_data,
-        "result": "Data processed successfully"
-    }
-    return result
+def run_agent(prompt: str, stream: bool = False):
+    agent = CodeAgent(tools=[], model=HfApiModel(), add_base_tools=True)
 
-def main():
-    parser = argparse.ArgumentParser(description='Python backend for 3D visualization')
-    parser.add_argument('--get-data', action='store_true', help='Get data for visualization')
-    parser.add_argument('--process-data', action='store_true', help='Process data from frontend')
-    
-    args = parser.parse_args()
-    
-    if args.get_data:
-        data = get_data()
-        # Output JSON data for frontend
-        print(json.dumps(data), flush=True)
-    
-    elif args.process_data:
-        # Read input from stdin
-        input_data = json.loads(sys.stdin.read())
-        result = process_data(input_data)
-        print(json.dumps(result, flush=True))
-    
+    if stream:
+        # 1️⃣ prime the run (hidden)
+        final_answer = quiet_run(agent, prompt)
+
+        # 2️⃣ now replay it as a generator and emit clean JSON
+        for step in agent.run(prompt, stream=True):
+            for msg in pull_messages_from_step(step):
+                text = msg.content if hasattr(msg, "content") else str(msg)
+                print(json.dumps({"stream": text}), flush=True)
+
+            if isinstance(step, FinalAnswerStep):
+                final_answer = step.final_answer
+
+        print(json.dumps({"reply": str(final_answer)}), flush=True)
+
     else:
-        print(json.dumps({"error": "No valid command specified"}))
+        result = quiet_run(agent, prompt)
+        print(json.dumps({"reply": str(result)}), flush=True)
 
 if __name__ == "__main__":
-    # Run main entry point
-    main()
+    p = argparse.ArgumentParser()
+    p.add_argument("--prompt", required=True)
+    p.add_argument("--stream", action="store_true")
+    args = p.parse_args()
+    run_agent(args.prompt, args.stream)

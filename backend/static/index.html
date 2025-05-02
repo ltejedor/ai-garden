@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>SmolAgents Chat</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    #chatbox { border: 1px solid #ccc; padding: 1rem; height: 400px; overflow-y: auto; }
+    #prompt { width: 100%; }
+    .message { margin: 0.5rem 0; }
+    .user { color: #0066cc; }
+    .bot { color: #000; }
+  </style>
+</head>
+<body>
+  <h1>SmolAgents Chat</h1>
+  <div id="chatbox"></div>
+  <textarea id="prompt" rows="3" placeholder="Type your prompt here..."></textarea><br/>
+  <button id="sendBtn">Send</button>
+
+  <script>
+    const chatbox = document.getElementById('chatbox');
+    const promptInput = document.getElementById('prompt');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function addMessage(text, cls) {
+      const div = document.createElement('div');
+      div.className = 'message ' + cls;
+      div.textContent = text;
+      chatbox.appendChild(div);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    sendBtn.addEventListener('click', () => {
+      const prompt = promptInput.value.trim();
+      if (!prompt) return;
+      addMessage('You: ' + prompt, 'user');
+      promptInput.value = '';
+      fetch('/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({prompt})
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            addMessage('Error: ' + data.error, 'bot');
+          } else {
+            addMessage('Bot: ' + data.response, 'bot');
+          }
+        })
+        .catch(err => {
+          addMessage('Error: ' + err, 'bot');
+        });
+    });
+
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,13 +1,18 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import axios from 'axios';
 
 function App() {
   const mountRef = useRef(null);
+  // Chat state
+  const [messages, setMessages] = useState([
+    { sender: 'bot', text: 'Hello! This is a test chat. Type a message and press Send.' }
+  ]);
+  const [input, setInput] = useState('');
   
   useEffect(() => {
-    // Scene setup
+    // Scene setupf
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x111111);
     
@@ -44,18 +49,18 @@ function App() {
     scene.add(cube);
     
     // Fetch data from backend
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('/api/data');
-        console.log('Data from backend:', response.data);
-        // Update visualization based on data
-        // This is where you would process the data from your Python backend
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
+    // const fetchData = async () => {
+    //   try {
+    //     const response = await axios.get('/api/data');
+    //     console.log('Data from backend:', response.data);
+    //     // Update visualization based on data
+    //     // This is where you would process the data from your Python backend
+    //   } catch (error) {
+    //     console.error('Error fetching data:', error);
+    //   }
+    // };
     
-    fetchData();
+    // fetchData();
     
     // Animation loop
     const animate = () => {
@@ -86,12 +91,50 @@ function App() {
     };
   }, []);
   
+  // Handle chat form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text) return;
+    // Add user message
+    setMessages((prev) => [...prev, { sender: 'user', text }]);
+    setInput('');
+    try {
+
+        const { data } = await axios.post('/api/chat', { message: text }); // <‑‑ new path
+        setMessages(prev => [...prev, { sender: 'bot', text: data.reply }]); // <‑‑ new shape
+  
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages((prev) => [...prev, { sender: 'bot', text: 'Error: failed to send message' }]);
+    }
+  };
+  
   return (
     <div>
       <div id="info">
         3D Visualization with Three.js and Python Backend
       </div>
       <div ref={mountRef}></div>
+      {/* Chat interface */}
+      <div className="chat-interface">
+        <div className="messages">
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`message ${msg.sender}`}>
+              {msg.text}
+            </div>
+          ))}
+        </div>
+        <form className="chat-form" onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type a message..."
+          />
+          <button type="submit">Send</button>
+        </form>
+      </div>
     </div>
   );
 }
